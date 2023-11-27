@@ -89,8 +89,14 @@ function Home() {
       "id",
       "Indicador",
       "Nombre",
-      "Fecha captura",
+      "Fecha envío",
       "Nombre",
+      "Apellido paterno",
+      "Apellido materno",
+      "Entidad",
+      "Municipio",
+      "Centro de salud",
+      "Usuario",
       "Respuestas",
     ]);
     //add the data
@@ -100,9 +106,13 @@ function Home() {
         answerDetailed.indicator_id,
         answerDetailed.name,
         new Date(answerDetailed.created_at).toLocaleDateString("es-MX"),
-        `${answerDetailed.name_user} 
-        ${answerDetailed.last_name_user_1}
-        ${answerDetailed.last_name_user_2} `,
+        answerDetailed.name_user,
+        answerDetailed.last_name_user_1,
+        answerDetailed.last_name_user_2,
+        answerDetailed.entity_key,
+        answerDetailed.key_municipality,
+        answerDetailed.clue_id,
+        answerDetailed.user_id,
         answerDetailed.answers.length,
       ]);
     });
@@ -183,7 +193,7 @@ function Home() {
               <th className="px-4 py-2">id</th>
               <th className="px-4 py-2">Indicador</th>
               <th className="px-4 py-2">Nombre</th>
-              <th className="px-4 py-2">Fecha captura</th>
+              <th className="px-4 py-2">Fecha envío</th>
               <th className="px-4 py-2">Nombre</th>
               <th className="px-4 py-2">Respuestas</th>
             </tr>
