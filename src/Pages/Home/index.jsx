@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ThreeDots } from "react-loader-spinner";
 import { URL_API_ANSWERS, getToken } from "../../api";
-import { IndicatorSumarized } from "../../components/IndicatorSumarized";
+// import { IndicatorSumarized } from "../../components/IndicatorSumarized";
 import mainImage from "../../assets/mainImage.svg";
 import { indicators } from "../../constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
@@ -33,16 +33,24 @@ function Home() {
       //console.log("data", data?.data);
       const answersFromAPI = data?.data;
       //Then we sumarize by device_id
+
+      answersFromAPI.sort((a, b) => b.id - a.id);
+      setAnswers(answersFromAPI);
+      //Sumarize by device_id and include a new field of the answer with id 102 as
+      //field exp
+
       const answersSumarized = answersFromAPI.reduce((acc, answer) => {
         const index = acc.findIndex(
           (answerSumarized) => answerSumarized.device_id === answer.device_id
         );
         if (index === -1) {
-          acc.push({ ...answer, answers: [] });
+          acc.push({ ...answer, answers: [], exp: "" });
         }
         return acc;
       }, []);
       console.log("answersSumarized", answersSumarized);
+
+      //add new field
 
       for (let index = 0; index < answersSumarized.length; index++) {
         const answer = answersSumarized[index];
@@ -56,6 +64,13 @@ function Home() {
         const data = await response.json();
         const answers = data?.data;
         answersSumarized[index].answers = answers;
+
+        // get value from numberOfExpedient
+        const numberOfExpedient = answers.filter(
+          (answer) => answer.question_id === 102
+        );
+        console.log("numberOfExpedient", numberOfExpedient);
+        answersSumarized[index].exp = numberOfExpedient[0]?.answer_value;
 
         //adding number of indicator from const indicator
         indicators.forEach((indicator) => {
@@ -78,17 +93,32 @@ function Home() {
   };
   //function to create Excel file with answersSumarized when click on button
 
+  //we create a new var
+  //that the answer_value is a new field when question_id is 102
+
+  // const newRowsForExcel = (answersSumarized) => {
+  //   const newRows = answersSumarized.map((answer) => {
+  //     const newAnswer = { ...answer };
+  //     const question102 = answer.answers.find(
+  //       (answer) => answer.question_id === 102
+  //     );
+  //     if (question102) {
+  //       newAnswer.answer_value = question102.answer_value;
+  //     }
+  //     return newAnswer;
+  //   });
+  //   return newRows;
+  // };
+
   const createExcelFile = () => {
-    console.log("createExcelFile");
     //create a new Excel file
     const excel = new ExcelJS.Workbook();
-    //add a sheet to the Excel file
     const sheet = excel.addWorksheet("Capturas");
-    //add the headers
+    //add columns
     sheet.addRow([
       "id",
+      "device_id",
       "Indicador",
-      "Nombre",
       "Fecha envío",
       "Nombre",
       "Apellido paterno",
@@ -97,46 +127,31 @@ function Home() {
       "Municipio",
       "Centro de salud",
       "Usuario",
-      "Respuestas",
-    ]);
-    //add the data
-    answersDetailed.forEach((answerDetailed) => {
-      sheet.addRow([
-        answerDetailed.id,
-        answerDetailed.indicator_id,
-        answerDetailed.name,
-        new Date(answerDetailed.created_at).toLocaleDateString("es-MX"),
-        answerDetailed.name_user,
-        answerDetailed.last_name_user_1,
-        answerDetailed.last_name_user_2,
-        answerDetailed.entity_key,
-        answerDetailed.key_municipality,
-        answerDetailed.clue_id,
-        answerDetailed.user_id,
-        answerDetailed.answers.length,
-      ]);
-    });
-    // in a new sheet save the answers
-    const sheetAnswers = excel.addWorksheet("Respuestas");
-    //add the headers
-    sheetAnswers.addRow([
-      "id",
-      "device_id",
-      "indicator_id",
+      // "indicator_id",
+      "Expediente",
       "question_id",
       "answer_option",
       "answer_value",
     ]);
-    //add the data
+    //add rows
     answersDetailed.forEach((answerDetailed) => {
-      answerDetailed.answers.forEach((answer) => {
-        sheetAnswers.addRow([
-          answer.id,
-          answer.device_id,
-          answer.indicator_id,
-          answer.question_id,
-          answer.answer_option,
-          answer.answer_value,
+      answerDetailed.answers.forEach((answerDeep) => {
+        sheet.addRow([
+          answerDetailed.id,
+          answerDetailed.device_id,
+          answerDetailed.indicator_id,
+          new Date(answerDetailed.created_at).toLocaleDateString("es-MX"),
+          answerDetailed.name_user,
+          answerDetailed.last_name_user_1,
+          answerDetailed.last_name_user_2,
+          answerDetailed.entity_key,
+          answerDetailed.key_municipality,
+          answerDetailed.clue_id,
+          answerDetailed.user_id,
+          answerDetailed.exp,
+          answerDeep.question_id,
+          answerDeep.answer_option,
+          answerDeep.answer_value,
         ]);
       });
     });
@@ -155,13 +170,13 @@ function Home() {
 
   return (
     <div>
-      <div className="flex flex-row m-5 w-full">
-        <h1 className="text-3xl font-medium line-clamp-5 w-96 mt-32 ">
+      <div className="flex flex-row justify-center w">
+        <h1 className="md:text-2xl lg:text-3xl font-medium sm:text-xl line-clamp-5 w-48 md:w-64 lg:w-96 mt-32 ">
           El asistente que te permite conocer los
           <span className="text-red-500 font-bold"> niveles de calidad </span>
           de la atención médica
         </h1>
-        <figure className="w-96 m-8 ml-40">
+        <figure className="w-48 md:w-72 lg:w-96 m-8 ml-40">
           <img src={mainImage} alt="IBERO" />
         </figure>
       </div>
@@ -174,10 +189,12 @@ function Home() {
         >
           Consultar capturas
         </button>
-        <div className="flex flex-col align-middle">
-          {loading && <ThreeDots color="red" className="self-center m-4" />}
-          {errorLoading && <p>Error al obtener la información</p>}
-        </div>
+        {loading && (
+          <ThreeDots
+            color="red"
+            className="text-center self-center m-4 w-full"
+          />
+        )}
       </div>
       {answersDetailed.length > 0 && (
         <div className="flex flex-row-reverse mr-16  ">
@@ -186,8 +203,8 @@ function Home() {
           </button>
         </div>
       )}
-      <div className="flex flex-col justify-center">
-        <table className="table-auto mb-10 m-10">
+      <div className="flex flex-col items-center  justify-items-center lg:w-full mb-6 h-96">
+        <table className="table-auto m-1">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-2">id</th>
@@ -230,6 +247,13 @@ function Home() {
             ))}
           </tbody>
         </table>
+        <div className="flex flex-col justify-center w-full">
+          {errorLoading && (
+            <p className="w-full text-center">
+              Error al obtener la información
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
